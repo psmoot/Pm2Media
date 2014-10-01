@@ -1,0 +1,6 @@
+<?eclipse.ant.import ?>
+<project xmlns:ivy="antlib:org.apache.ivy.ant" basedir="." default="resolve" name="resolve">
+  <target name="resolve" description="Resolve and retrieve dependencies with Ivy.">
+    <ivy:retrieve />
+  </target>
+</project>

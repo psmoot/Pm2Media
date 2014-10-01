@@ -1,0 +1,759 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * PmWiki2MediaWikiConverter is the class to handle conversion of PmWiki syntax
+ * to MediaWiki syntax.
+ * 
+ * @author Johannes Perl
+ * 
+ */
+public class PmWiki2MediaWikiConverter {
+	private String imagePrefix;
+	
+	public final PmWiki2MediaWikiConverter withImagePrefix(final String imagePrefix) {
+		this.imagePrefix = imagePrefix;
+		return this;
+	}
+
+	/**
+	 * Private class constructor.
+	 */
+	public PmWiki2MediaWikiConverter() {
+	}
+
+	private interface SyntaxConversion {
+		String convert(final String text);
+	};
+	
+	/**
+	 * Converts a text of PmWiki syntax into a text of MediaWiki syntax.
+	 * 
+	 * @param text
+	 *            the text to be converted
+	 * @return the converted String
+	 */
+	public final String pmw2mw(final String text) {
+		Logger.getInstance().log("Started replace sytnax");
+		String newText = replacePmWikiSyntax(text);
+		Logger.getInstance().log("Finished replacing syntax");
+
+		return newText;
+	}
+
+	/**
+	 * Converts a text from PmWiki syntax to MediaWiki syntax.
+	 *
+	 * @param text
+	 *            the text to be converted
+	 * @return the converted text
+	 */
+	private String replacePmWikiSyntax(final String text) {
+		List<SyntaxConversion> conversions = new ArrayList<SyntaxConversion>();
+		
+		conversions.addAll(Arrays.asList(
+				new ReplaceSimpleSyntax(),
+				new ReplaceInternalWikiLinks(),
+				new ReplaceExternalWikiLinks(),
+				new ReplaceSimpleTables(),
+				new ReplaceAdvancedTables(),
+				new ReplaceCenteredText(),
+				new ReplaceDefinitions(),
+				new ReplaceFileLinks(),
+				new ReplaceHeadings(),
+				new ReplaceMonotypeText(),
+				new ReplaceRightAlignedText(),
+				new ReplaceAttachmentLinks(),
+				new ReplaceSource()
+				));
+
+		for (SyntaxConversion s : conversions) {
+			String convertedText = text;
+			try {
+				String newText = s.convert(convertedText);
+				convertedText = newText;
+			} 
+			catch (StackOverflowError e) {
+				Logger.getInstance().logPage(text, s.getClass().getName() + "-stack-overflow.txt");
+				Logger.getInstance().logError("Stack overflow while executing " + s.getClass().getName() + " conversion.");
+			}
+			catch (Exception e) {
+				Logger.getInstance().logPage(text, s.getClass().getName() + "-pre-conversion.txt");
+				Logger.getInstance().logError("Failed while executing " + s.getClass().getName() + " conversion.");
+				e.printStackTrace();
+			}
+		}
+
+		return text;
+	}
+
+	private class ReplaceSimpleSyntax implements SyntaxConversion {
+		/** array for simple matches. */
+		private final SyntaxPair[] syntaxPairs = { 
+				new SyntaxPair("\\\\\\", "\n\n\n\n"),
+				new SyntaxPair("\\\\\n", "\n\n"), 
+				new SyntaxPair("[[<<]]", "\n"),
+				new SyntaxPair("\\\\ ", "<br />"), 
+				new SyntaxPair("'^", "<sup>"),
+				new SyntaxPair("^'", "</sup>"), 
+				new SyntaxPair("'_", "<sub>"),
+				new SyntaxPair("_'", "</sub>"), 
+				new SyntaxPair("{+", "<u>"),
+				new SyntaxPair("+}", "</u>"), 
+				new SyntaxPair("{-", "<s>"),
+				new SyntaxPair("-}", "</s>"), 
+				new SyntaxPair("[+", "<big>"),
+				new SyntaxPair("+]", "</big>"), 
+				new SyntaxPair("[-", "<small>"),
+				new SyntaxPair("-]", "</small>"), 
+				new SyntaxPair("'+", "<big>"),
+				new SyntaxPair("+'", "</big>"), 
+				new SyntaxPair("\n'-", "<small>"),
+				new SyntaxPair("-'", "</small>"),
+				new SyntaxPair("(:toc:)", "__TOC__"),
+				new SyntaxPair("[=", "<nowiki>"),
+				new SyntaxPair("=]", "</nowiki>"), 
+				new SyntaxPair("[@", "<pre>"),
+				new SyntaxPair("@]", "</pre>"), 
+				new SyntaxPair("->", ":"),
+				new SyntaxPair("-->", "::"), 
+				new SyntaxPair("%newwin%", ""),
+				new SyntaxPair("[:randquote:]", "") };
+		
+		public String convert(final String text)  {
+			
+			String convertedText = text;
+			for (int i = 0; i < syntaxPairs.length; i++) {
+				String newText = replaceAll(convertedText, syntaxPairs[i].getPmWSyntax(),
+						syntaxPairs[i].getMWSyntax());
+				convertedText = newText;
+			}
+			return text;
+		}
+	}
+
+	/**
+	 * Converts all advanced tables of PmWiki to tables of MediaWiki.
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceAdvancedTables implements SyntaxConversion {
+		public String convert(final String text) {
+			
+			String convertedText = text;
+			/* pattern matching advanced table start */
+			Pattern advtableStart = Pattern.compile("\\(:table (.*?):\\)\n");
+			Matcher matcher = advtableStart.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "\n{|" + matcher.group(1) + "\n");
+				convertedText = newText;
+				matcher = advtableStart.matcher(convertedText);
+			}
+
+			/* pattern matching table line end */
+			Pattern advtableLineEnd = Pattern
+					.compile("\n\\(:cellnr(.*?):\\)\\s{0,}(.*?)\n");
+			matcher = advtableLineEnd.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "\n |-\n \\|" + matcher.group(2) + "\n");
+				convertedText = newText;
+				matcher = advtableLineEnd.matcher(convertedText);
+			}
+
+			/* pattern matching table cell */
+			Pattern advtableCell = Pattern.compile("\n\\(:cell(.*?):\\)");
+			matcher = advtableCell.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "\n |");
+				convertedText = newText;
+				matcher = advtableCell.matcher(convertedText);
+			}
+
+			/* pattern matching table end */
+			Pattern advtableEnd = Pattern.compile("\n\\(:tableend:\\)");
+			matcher = advtableEnd.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "\n |}\n\n");
+				convertedText = newText;
+				matcher = advtableEnd.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+
+	/**
+	 * Converts all attachment links of PmWiki to attachment links of
+	 * MediaWiki.<br /><br />
+	 *
+	 * <b>Conversion:</b><br />
+	 * Attach:image.jpeg => [[Image:image.jpeg]]
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceAttachmentLinks implements SyntaxConversion {
+		public String convert(final String text) {
+			/** regex matching pictures. */
+			Pattern imgAttachement = Pattern
+					.compile("Attach:(.*?)\\.(?i)(jpeg|jpg|gif|png)");
+
+			String convertedText = text;
+			Matcher matcher = imgAttachement.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "[[" + imagePrefix + ":" + matcher.group(1).trim()
+						+ "." + matcher.group(2) + "]]");
+				convertedText = newText;
+				matcher = imgAttachement.matcher(convertedText);
+			}
+
+			/** regex matching files */
+			Pattern fileAttachement = Pattern
+					.compile("\\[\\[Attach:([^\\.]*?)\\.([\\w]{3,4})(.*?)\\]\\]");
+
+			matcher = fileAttachement.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "[[File:" + matcher.group(1).trim()
+						+ "." + matcher.group(2).trim() + " " + matcher.group(3)
+						+ "]]");
+				convertedText = newText;
+				matcher = fileAttachement.matcher(convertedText);
+			}
+
+			/** regex matching files */
+			Pattern fileAttachement2 = Pattern
+					.compile("Attach:([^\\.]*?)\\.([\\w]{3,4})");
+
+			matcher = fileAttachement2.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "[[File:" + matcher.group(1).trim()
+						+ "." + matcher.group(2) + "]]");
+				convertedText = newText;
+				matcher = fileAttachement2.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+
+	/**
+	 * Converts all centered texts of PmWiki to centered texts of MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />
+	 * %center% text => <center>text</center>
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceCenteredText implements SyntaxConversion {
+		public String convert(final String text) {
+			/** regex matching centered text */
+			Pattern centerPattern = Pattern.compile("%center%(.*?)\n");
+
+			String convertedText = text;
+			Matcher matcher = centerPattern.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "<center>" + matcher.group(1)
+						+ "</center>");
+				convertedText = newText;
+				matcher = centerPattern.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+	
+	/**
+	 * Converts all definitions of PmWiki to definitions of MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />
+	 * :item:definition => ;item:definition
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceDefinitions implements SyntaxConversion {
+		public String convert(final String text) {
+			String convertedText = text;
+			/* pattern matching definition list: :item : definition */
+			Pattern definition = Pattern.compile("(\n|^):(.*?):(.*?)\n");
+			Matcher matcher = definition.matcher(convertedText);
+
+			while (matcher.find()) {
+				String start;
+				if (matcher.group(1) != null) {
+					start = matcher.group(1);
+				} else {
+					start = "";
+				}
+				String newText = replaceFirstQuoted(matcher, start + ";" + matcher.group(2).trim()
+						+ ":" + matcher.group(3).trim() + "\n");
+				convertedText = newText;
+				matcher = definition.matcher(convertedText);
+			}
+
+			return text;
+		}
+	}
+
+	/**
+	 * Converts all file links of PmWiki to file links of MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />
+	 * [[file://c:/windows/ | windows]] | [[file:\\c:/windows/ | windows]] =>
+	 * [file://c:/windows/ windows]
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceFileLinks implements SyntaxConversion {
+		public String convert(final String text) {
+			String convertedText = text.replaceAll("file:\\\\\\\\", "file:\\/\\/");
+
+			Pattern fileLink = Pattern
+					.compile("\\[\\[\\s{0,1}file:\\/\\/(.*?)[\\|](.*?)\\]\\]");
+			Matcher matcher = fileLink.matcher(convertedText);
+
+			while (matcher.find()) {
+				String url = matcher.group(1).replaceAll("\\\\", "/");
+				String newText = replaceFirstQuoted(matcher, "[File://" + url.trim() + " "
+						+ matcher.group(2).trim() + "]");
+				convertedText = newText;
+				matcher = fileLink.matcher(convertedText);
+			}
+
+			Pattern fileLink2 = Pattern
+					.compile("\\[\\[\\s{0,1}file:\\/\\/(.*?)\\]\\]");
+			matcher = fileLink2.matcher(convertedText);
+
+			while (matcher.find()) {
+				String url = matcher.group(1).replaceAll("\\\\", "/").trim();
+				String newText = replaceFirstQuoted(matcher, "[File://" + url + "]");
+				convertedText = newText;
+				matcher = fileLink2.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+
+	/**
+	 * Converts all headings of PmWiki to headings of MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />
+	 * !heading => == heading ==
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceHeadings implements SyntaxConversion {
+		public String convert(final String text) {
+			String convertedText = text;
+			
+			/* Patterns matching headings: !heading1, !!heading2, ... */
+			Pattern[] heading = new Pattern[5];
+			for (int i = 0; i < 5; i++) {
+				heading[i] = Pattern.compile("(\n|^)!{" + (i + 1)
+						+ "}\\s{0,}(.*?)\\s{0,}\n");
+			}
+
+			String mWHeadingSyntax = "=====";
+			for (int i = heading.length - 1; i >= 0; i--) {
+				if (i > 1) {
+					mWHeadingSyntax = mWHeadingSyntax.substring(1);
+				}
+
+				Matcher matcher = heading[i].matcher(convertedText);
+				while (matcher.find()) {
+					String newText = replaceFirstQuoted(matcher, matcher.group(1) + mWHeadingSyntax
+							+ " " + matcher.group(2) + " " + mWHeadingSyntax
+							+ "\n\n");
+					convertedText = newText;
+					matcher = heading[i].matcher(convertedText);
+				}
+			}
+
+			return convertedText;
+		}
+	}
+
+	/**
+	 * Converts all monotype texts of PmWiki to truetype texts of MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />@@monotype text@@ => <tt>truetype text</tt>
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceMonotypeText implements SyntaxConversion {
+		/**
+		 * Converts "@@text@@ ot <tt>text</tt>.
+		 * 
+		 * @param text Original text.
+		 * 
+		 * @return New string containing converted text.
+		 */
+		public String convert(final String text) {
+			/** RegEx matching monotype font */
+//			final Pattern monotypePattern = Pattern.compile("@@(.*?){1,}@@",
+//					Pattern.DOTALL);
+			final Pattern monotypePattern = Pattern.compile("@@(.*?)@@", Pattern.DOTALL);
+
+			String convertedText = text;
+
+			try {
+				while (true) {
+					// replacing monotype syntax
+					Matcher matcher;
+					try {
+						matcher = monotypePattern.matcher(convertedText);
+					} catch (StackOverflowError e) {
+						Logger.getInstance().logError("Failed compiling monotype pattern.");
+						e.printStackTrace();
+						return convertedText;
+					}
+
+					boolean foundOne = false;
+					try {
+						foundOne = matcher.find();
+					} catch (StackOverflowError e) {
+						Logger.getInstance().logError("Failed searching for monotype pattern.");
+						e.printStackTrace();
+					}
+					if (! foundOne) {
+						break;
+					}
+
+					String newText;
+					try {
+						newText = replaceFirstQuoted(matcher,
+								"<tt>" + matcher.group(1) + "</tt>");
+						convertedText = newText;
+					} catch (StackOverflowError e) {
+						Logger.getInstance().logError("Failed replacing monotype.");
+						e.printStackTrace();
+						return convertedText;
+					}
+				}
+			} catch (StackOverflowError e) {
+				Logger.getInstance().logError("Whoops, didn't catch stack overflow exception.");
+				e.printStackTrace();
+			}
+
+			return convertedText;
+		}
+	}
+	
+	/**
+	 * Converts all right aligned texts of PmWiki to right aligned texts of
+	 * MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />
+	 * %right% text => &lt;div align="right"&gt;text&lt;/div&gt;
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceRightAlignedText implements SyntaxConversion {
+		public String convert(final String text) {
+			String convertedText = text;
+			
+			/** regex matching right aligned text */
+			Pattern right = Pattern.compile("%right%(.*?)\n");
+
+			Matcher matcher = right.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "<div align=\"right\">"
+						+ matcher.group(1) + "</div>");
+				convertedText = newText;
+				matcher = right.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+
+	/**
+	 * Converts all simple tables of PmWiki to tables of MediaWiki.<br /><br />
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceSimpleTables implements SyntaxConversion {
+		public String convert(final String text) {
+			String convertedText = text;
+			
+			/** string containing elements of PmWiki syntax for regexp */
+			final String pmWikiSyntaxElements = "!\\-':\\(\\%\\[\\{\\#\\*\\\\";
+
+			/* pattern matching table start */
+			Pattern tableStart = Pattern
+					.compile("\\|\\|\\s{0,}(((border\\s{0,}=\\s{0,}\\d)|(align\\s{0,}=\\s{0,}[\\w])|(width\\s{0,}=\\s{0,}\\d\\s{0,}%)|(colspan\\s{0,}=\\s{0,}\\d\\s{0,}%)).*?\n)");
+			Matcher matcher = tableStart.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "\n{|" + matcher.group(1));
+				convertedText = newText;
+				matcher = tableStart.matcher(convertedText);
+			}
+
+			/* pattern matching table line end */
+			Pattern tableLineEnd = Pattern.compile("\\|\\|\\s{0,1}\n");
+			matcher = tableLineEnd.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "\n |-\n");
+				convertedText = newText;
+				matcher = tableLineEnd.matcher(convertedText);
+			}
+
+			/* pattern matching table cell */
+			Pattern tableCell = Pattern.compile("\n{0,}(\\|\\|)\\s{0,}([\\w"
+					+ pmWikiSyntaxElements + "])|\n{0,}(\\|\\|)\\s{1}");
+			matcher = tableCell.matcher(convertedText);
+			String cellText = "";
+			while (matcher.find()) {
+				cellText = matcher.group(2);
+				if (matcher.group(2) == null) {
+					cellText = "";
+				}
+
+				String newText = replaceFirstQuoted(matcher, "\n |" + cellText);
+				convertedText = newText;
+				matcher = tableCell.matcher(convertedText);
+			}
+
+			/* pattern matching table end */
+			Pattern tableEnd = Pattern.compile("\\|\\-(\n{0,}\\s{0,}[\\w"
+					+ pmWikiSyntaxElements + "]|$|\n\\{\\|)");
+			matcher = tableEnd.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "|}\n\n" + matcher.group(1));
+				convertedText = newText;
+				matcher = tableEnd.matcher(convertedText);
+			}
+
+			/* pattern matching head cells */
+			Pattern headerCell = Pattern.compile("\n \\|!(.*?)(\n|$)");
+			matcher = headerCell.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "\n |'''" + matcher.group(1).trim()	+ "'''\n");
+				convertedText = newText;
+				matcher = headerCell.matcher(convertedText);
+			}
+
+			/* pattern matching %center% or %right% within table */
+			Pattern alignTable = Pattern.compile(
+					"\\{\\|(.*?)%(center|right)%(.*?)\n \\|\\}", Pattern.MULTILINE);
+			matcher = alignTable.matcher(convertedText);
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "<div align=\"" + matcher.group(2)
+						+ "\">\n{|\n" + matcher.group(1) + "" + matcher.group(3)
+						+ "\n |}\n</div>");
+				convertedText = newText;
+				matcher = alignTable.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+
+	/**
+	 * Converts all definitions of PmWiki to definitions of MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />
+	 * (:source lang=c:)code(:source:) => &lt;source lang="c"&gt;code&lt;/source&gt;
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceSource implements SyntaxConversion {
+		public String convert(final String text) {
+			String convertedText = text;
+			
+			/** RegEx matching source tag */
+			final Pattern sourcePattern = Pattern.compile(
+					"\\(:source lang=([a-z0-9]{1,}):\\)(.*?)(:source:)",
+					Pattern.MULTILINE);
+
+			// replacing source start tags
+			Matcher matcher = sourcePattern.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "<source lang=\"" + matcher.group(1)
+						+ "\">" + matcher.group(2) + "</source>");
+				convertedText = newText;
+				matcher = sourcePattern.matcher(convertedText);
+			}
+
+			// replacing <br /> in source
+			Pattern sourceBRPattern = Pattern.compile(
+					"<source lang=\"(.*?)\">(.*?)(<br />)(.*?)</source>",
+					Pattern.MULTILINE);
+			matcher = sourceBRPattern.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "<source lang=\"" + matcher.group(1) + "\">"
+						+ matcher.group(2) + matcher.group(4) + "</source>");
+				convertedText = newText;
+				matcher = sourceBRPattern.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+	
+	/**
+	 * Converts all internal wikilinks of PmWiki to internal wikilinks of
+	 * MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />
+	 * [[Group Page]] => [[Page]]
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceInternalWikiLinks implements SyntaxConversion {
+		public String convert(final String text) {
+			String convertedText = text;
+			/** RegEx matching internal wiki links [[Wikilink]] */
+			Pattern internalWikiLink = Pattern
+					.compile("\\[\\[([\\w]{1,})[|]([\\w]{1,})\\]\\]");
+
+			Matcher matcher = internalWikiLink.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "[[" + matcher.group(1) + " "
+						+ matcher.group(2) + "]]");
+				convertedText = newText;
+				matcher = internalWikiLink.matcher(convertedText);
+			}
+
+			/**
+			 * regex matching internal wiki links [[Namespace.Link]]
+			 * [[Namespace/Link]]
+			 */
+			Pattern internalWikiLink2 = Pattern
+					.compile("\\[\\[([\\w]{1,})[\\.|\\/]([\\w\\| ]{1,})\\]\\]");
+
+			matcher = internalWikiLink2.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "[[" + matcher.group(1) + ":"
+						+ matcher.group(2) + "]]");
+				convertedText = newText;
+				matcher = internalWikiLink2.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+	
+	/**
+	 * Converts all external wikilinks of PmWiki to external wikilinks of
+	 * MediaWiki.<br /><br />
+	 * 
+	 * <b>Conversion:</b><br />
+	 * [[http://www.link.com/ | Linktext]] => [http://www.link.com/ Linktext]<br />
+	 * [[mailto:address@domain.com]] => [mailto:address@domain.com]
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceExternalWikiLinks implements SyntaxConversion {
+		public String convert(final String text) {
+			String convertedText = text;
+			
+			/** RegEx matching external wiki links */
+			Pattern externalWikiLink = Pattern
+					.compile("\\[\\[(https{0,1}:\\/\\/(.*?))\\s{0,}\\|\\s{0,}(.*?)\\]\\]");
+
+			Matcher matcher = externalWikiLink.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "[" + matcher.group(1) + " "
+						+ matcher.group(3) + "]");
+				convertedText = newText;
+				matcher = externalWikiLink.matcher(convertedText);
+			}
+
+			/** RegEx matching mailto links */
+			Pattern mailtoLink = Pattern.compile("\\[\\[(mailto:.*?)\\]\\]");
+
+			matcher = mailtoLink.matcher(convertedText);
+
+			while (matcher.find()) {
+				String newText = replaceFirstQuoted(matcher, "[" + matcher.group(1) + "]");
+				convertedText = newText;
+				matcher = mailtoLink.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+	
+	/**
+	 * Replaces a String through a specified replacement.
+	 * 
+	 * @param original
+	 *            the string in which the replacements shall be done
+	 * @param search
+	 *            the string to be replaced
+	 * @param replace
+	 *            the replacement
+	 * @return String with all occurances of search string replaced.
+	 */
+	private String replaceAll(final String original, final String search, final String replace) {
+		final int sLength = original.length();
+		final int oldLength = search.length();
+		final int newLength = replace.length();
+
+		if (oldLength == 0) {
+			return original;
+		}
+
+		int oldPos = 0;
+		int newPos = 0;
+
+		StringBuffer sb = null;
+
+		if (newLength <= oldLength) {
+			sb = new StringBuffer(sLength);
+		} else {
+			sb = new StringBuffer(sLength * newLength / oldLength);
+		}
+
+		while ((newPos = original.indexOf(search, oldPos)) > -1) {
+			sb.append(original.substring(oldPos, newPos));
+			sb.append(replace);
+			oldPos = newPos + oldLength;
+		}
+
+		sb.append(original.substring(oldPos));
+
+		return sb.toString();
+	}
+	
+	private String replaceFirstQuoted(final Matcher matcher, final String replacement) {
+		return matcher.replaceFirst(Matcher.quoteReplacement(replacement));
+	}
+}

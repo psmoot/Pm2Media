@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. -->
+<project basedir="." default="build" name="pm2media-ivy">
+    <property environment="env"/>
+    <property name="ECLIPSE_HOME" value="../../../../../../Program Files/Eclipse/eclipse-java-kepler-SR2-win32-x64_64/eclipse"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="1.6"/>
+    <property name="source" value="1.6"/>
+    <import file="pm2media-build.xml"/>
+    <import file="export-runnable-jar.xml"/>
+    <path id="pm2media-ivy.classpath">
+        <pathelement location="bin"/>
+        <pathelement location="lib/activation-1.1.jar"/>
+        <pathelement location="lib/commons-codec-1.9.jar"/>
+        <pathelement location="lib/commons-collections-3.2.1.jar"/>
+        <pathelement location="lib/commons-io-2.4.jar"/>
+        <pathelement location="lib/commons-lang3-3.3.2.jar"/>
+        <pathelement location="lib/commons-logging-1.1.3.jar"/>
+        <pathelement location="lib/cssparser-0.9.14.jar"/>
+        <pathelement location="lib/disruptor-3.2.1.jar"/>
+        <pathelement location="lib/htmlparser-1.6.jar"/>
+        <pathelement location="lib/htmlunit-2.15-javadoc.jar"/>
+        <pathelement location="lib/htmlunit-2.15-sources.jar"/>
+        <pathelement location="lib/htmlunit-2.15.jar"/>
+        <pathelement location="lib/htmlunit-core-js-2.15.jar"/>
+        <pathelement location="lib/httpclient-4.3.3.jar"/>
+        <pathelement location="lib/httpcore-4.3.2.jar"/>
+        <pathelement location="lib/httpmime-4.3.3.jar"/>
+        <pathelement location="lib/jackson-annotations-2.3.0.jar"/>
+        <pathelement location="lib/jackson-core-2.3.3.jar"/>
+        <pathelement location="lib/jackson-databind-2.3.3.jar"/>
+        <pathelement location="lib/jackson-dataformat-xml-2.3.3.jar"/>
+        <pathelement location="lib/jackson-dataformat-yaml-2.3.3.jar"/>
+        <pathelement location="lib/jackson-module-jaxb-annotations-2.3.3.jar"/>
+        <pathelement location="lib/jansi-1.11.jar"/>
+        <pathelement location="lib/javax.mail-1.5.0.jar"/>
+        <pathelement location="lib/javax.persistence-2.1.0.jar"/>
+        <pathelement location="lib/jboss-jms-api_1.1_spec-1.0.1.Final.jar"/>
+        <pathelement location="lib/jetty-http-8.1.15.v20140411.jar"/>
+        <pathelement location="lib/jetty-io-8.1.15.v20140411.jar"/>
+        <pathelement location="lib/jetty-util-8.1.15.v20140411.jar"/>
+        <pathelement location="lib/jetty-websocket-8.1.15.v20140411.jar"/>
+        <pathelement location="lib/log4j-api-2.0-rc2-javadoc.jar"/>
+        <pathelement location="lib/log4j-api-2.0-rc2-sources.jar"/>
+        <pathelement location="lib/log4j-api-2.0-rc2.jar"/>
+        <pathelement location="lib/log4j-core-2.0-rc2-javadoc.jar"/>
+        <pathelement location="lib/log4j-core-2.0-rc2-sources.jar"/>
+        <pathelement location="lib/log4j-core-2.0-rc2.jar"/>
+        <pathelement location="lib/nekohtml-1.9.21.jar"/>
+        <pathelement location="lib/org.osgi.core-4.3.1.jar"/>
+        <pathelement location="lib/sac-1.3.jar"/>
+        <pathelement location="lib/serializer-2.7.1.jar"/>
+        <pathelement location="lib/stax-api-1.0-2.jar"/>
+        <pathelement location="lib/stax2-api-3.1.4.jar"/>
+        <pathelement location="lib/woodstox-core-asl-4.3.0.jar"/>
+        <pathelement location="lib/xalan-2.7.1.jar"/>
+        <pathelement location="lib/xercesImpl-2.11.0.jar"/>
+        <pathelement location="lib/xml-apis-1.4.01.jar"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="Resources">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean" description="Clean project">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall" description="Really clean project">
+	    <delete dir="lib" />
+	    <delete file="pm2media.jar" />
+    </target>
+
+    <target depends="resolve,build-subprojects,build-project" name="build" description="Build project" />
+    <target name="build-subprojects"/>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" includeantruntime="false" source="${source}" target="${target}">
+            <src path="src"/>
+            <src path="Resources"/>
+            <classpath refid="pm2media-ivy.classpath"/>
+        </javac>
+    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+    <target name="GUI" description="Run project">
+        <java classname="GUI" failonerror="true" fork="yes">
+            <classpath refid="pm2media-ivy.classpath"/>
+        </java>
+    </target>
+</project>
