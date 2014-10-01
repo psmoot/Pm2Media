@@ -39,10 +39,10 @@ public class Pm2MediaPrefs {
 		String value = "";
 		try {
 			value = getInstance().props.getProperty(key);
+			return (value != null && value.equalsIgnoreCase("true"));
 		} catch (NullPointerException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		}
-		return (value.equalsIgnoreCase("true"));
 	}
 }

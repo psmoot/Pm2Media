@@ -6,16 +6,21 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.htmlparser.NodeFilter;
 import org.htmlparser.Parser;
+import org.htmlparser.Tag;
 import org.htmlparser.filters.HasAttributeFilter;
 import org.htmlparser.filters.TagNameFilter;
 import org.htmlparser.filters.AndFilter;
+import org.htmlparser.tags.LinkTag;
 import org.htmlparser.util.NodeList;
 import org.htmlparser.util.ParserException;
+import org.htmlparser.visitors.NodeVisitor;
 
 import com.gargoylesoftware.htmlunit.DefaultCredentialsProvider;
 import com.gargoylesoftware.htmlunit.WebClient;
@@ -76,7 +81,7 @@ public class PmWiki {
 	 * 
 	 * @return all links to articles parsed form the index page of PmWiki
 	 */
-	public NodeList getLinksFromIndexPage() {
+	public Set<String> getLinksFromIndexPage() {
 		String page = "", input = "";
 		String pmWikiIndexURL = "";
 
@@ -84,7 +89,8 @@ public class PmWiki {
 		
 		// NodeList for the <a> tags
 		NodeList linkTags = new NodeList();
-
+		final Set<String> links = new HashSet<String>();
+		
 		try {
 			pmWikiIndexURL = wikiParams.getURL() + "/" + indexPageName;
 			Logger.getInstance().log(pmWikiIndexURL, Logger.Mode.OPEN);
@@ -96,12 +102,12 @@ public class PmWiki {
 		catch (MalformedURLException e) {
 			Logger.getInstance().logError("Failed to open index page, malformed URL " + pmWikiIndexURL);
 			e.printStackTrace();
-			return linkTags;
+			return links;
 		}
 		catch (IOException e) {
 			Logger.getInstance().logError("Failed to open index page, exception " + e.getMessage());
 			e.printStackTrace();
-			return linkTags;
+			return links;
 		}
 
 		// trimming the PmWiki page to the content
@@ -109,26 +115,31 @@ public class PmWiki {
 				page.indexOf(contentStart) + contentStart.length(),
 				page.indexOf(contentEnd));
 
-
-		// detecting all a tags on the index page
+		// Find all a tags on the index page
 		try {
 			Parser parser = new Parser();
 			parser.setInputHTML(input);
 			Logger.getInstance().log(pmWikiIndexURL, Logger.Mode.PARSE);
 			NodeFilter filter = new AndFilter(new TagNameFilter("a"), new HasAttributeFilter("class", "wikilink"));
 			linkTags = parser.extractAllNodesThatMatch(filter);
+
+			linkTags.visitAllNodesWith(new NodeVisitor() {
+				@Override
+				public void visitTag(Tag tag) {
+					LinkTag linkTag = (LinkTag) tag;
+					links.add(linkTag.getLink());
+				}
+			});
 		}
 		catch (ParserException e) {
 			Logger.getInstance().logError("Failed to open index page, parser exception " + e.getMessage());
 			e.printStackTrace();
-			return linkTags;
 		}
 
 		// number of link tags found
-		int tagsFound = linkTags.size();
-		Logger.getInstance().log(tagsFound + " <a> Tags found");
+		Logger.getInstance().log("Found " + links.size() + " <a> tags.");
 
-		return linkTags;
+		return links;
 	}
 
 	/**

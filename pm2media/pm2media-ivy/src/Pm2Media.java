@@ -120,21 +120,19 @@ public class Pm2Media {
 			return;
 		}
 
-		String articleLink, articleName, articleNamespace;
-
-		NodeList linkTags = pmWiki.getLinksFromIndexPage();
+		Set<String> articleLinks = pmWiki.getLinksFromIndexPage();
 		Article article = null;
 
-		Set<String> processedArticles = new HashSet<String>();
-		
 		PmWiki2MediaWikiConverter converter = new PmWiki2MediaWikiConverter()
 			.withImagePrefix(mWikiImagePrefix);
 			
 		// parsing every PmWiki article
-		for (int i = 0; i < linkTags.size(); i++) {
-			LinkTag articleNode = (LinkTag) linkTags.elementAt(i);
-			articleLink = articleNode.getLink();
-			Logger.getInstance().log("Processing " + articleLink + " (" + i + " of " + linkTags.size() + ").");
+		int i = 1;
+		for (String articleLink : articleLinks) {
+			String articleName, articleNamespace;
+
+			Logger.getInstance().log("Processing " + articleLink + " (" + i + " of " + articleLinks.size() + ").");
+			i += 1;
 			
 			if (articleLink.substring(this.pmWikiParams.getURL().length()).indexOf(".") != -1) {
 				String tmpArticleLink = articleLink.substring(this.pmWikiParams.getURL()
@@ -154,12 +152,6 @@ public class Pm2Media {
 				continue;
 			}
 
-			if (processedArticles.contains(articleNamespace + "/" + articleName)) {
-				continue;
-			} else {
-				processedArticles.add(articleNamespace + "/" + articleName);
-			}
-			
 			try {
 				// parsing relevant pages
 				article = pmWiki.getArticle(articleLink, articleNamespace,
