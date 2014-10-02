@@ -8,6 +8,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,7 +91,7 @@ public class PmWiki {
 		
 		// NodeList for the <a> tags
 		NodeList linkTags = new NodeList();
-		final Set<String> links = new HashSet<String>();
+		final SortedSet<String> links = new TreeSet<String>();
 		
 		try {
 			pmWikiIndexURL = wikiParams.getURL() + "/" + indexPageName;
