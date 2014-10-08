@@ -56,7 +56,7 @@ public class PmWiki {
 
 	private final WebClient webClient = new WebClient();
 
-	private ArticleCache articleCache;
+	private ArticleCache pmwikiCache;
 	
 	/** sequence marking start of content of PmWiki */
 	static String contentStart = "<!--PageText-->";
@@ -69,7 +69,7 @@ public class PmWiki {
 	 */
 	public PmWiki() {
 		Pm2MediaPrefs.getBoolProperty(Pm2MediaPrefs.PMWIKI_USE_CACHE);
-		articleCache = new ArticleCache();
+		pmwikiCache = new ArticleCache("pmWiki");
 	}
 
 	public void initializeCredentials() {
@@ -203,7 +203,7 @@ public class PmWiki {
 			article.setBody(text);
 
 			if (Pm2MediaPrefs.getBoolProperty(Pm2MediaPrefs.PMWIKI_USE_CACHE)) {
-				articleCache.cacheArticle(article.getPathInWiki("/"),  article.getBody());
+				pmwikiCache.cacheArticle(article.getPathInWiki("/"),  article.getBody());
 			}
 			
 			// pattern matching all attachments
@@ -238,8 +238,8 @@ public class PmWiki {
 	
 	private boolean getArticleFromCache(Article article) {
 		final String articlePath = article.getPathInWiki("/");
-		if (articleCache.isArticleCached(articlePath)) {
-			article.setBody(articleCache.getCachedArticle(articlePath));
+		if (pmwikiCache.isArticleCached(articlePath)) {
+			article.setBody(pmwikiCache.getCachedArticle(articlePath));
 			return true;
 		} else {
 			return false;

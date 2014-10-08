@@ -16,6 +16,9 @@ import org.junit.Test;
  */
 public class ArticleCacheTest {
 
+	private final String cacheName = "test";
+	ArticleCache ac;
+	
 	/**
 	 * @throws java.lang.Exception
 	 */
@@ -35,6 +38,7 @@ public class ArticleCacheTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
+		ac = new ArticleCache(cacheName);
 	}
 
 	/**
@@ -42,33 +46,28 @@ public class ArticleCacheTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
-		ArticleCache ac = new ArticleCache();
 		ac.cleanCache();
 	}
 
 	@Test
 	public void testIfNotCached() {
-		ArticleCache ac = new ArticleCache();
 		boolean isCached = ac.isArticleCached("test");
 		assertFalse(isCached);
 	}
 
 	@Test
 	public void testCreateDirectory() {
-		ArticleCache ac = new ArticleCache();
 		final String articleName = "base/article";
 		assertFalse(ac.isArticleCached(articleName));
 	}
 	
 	@Test
 	public void testCacheArticle() {
-		ArticleCache ac = new ArticleCache();
 		ac.cacheArticle("test_article", "This is the body of the article");
 	}
 	
 	@Test
 	public void testRetrieveCachedArticle() {
-		ArticleCache ac = new ArticleCache();
 		final String articleName = "test_article";
 		final String articleBody = "Test article body.";
 		ac.cacheArticle(articleName, articleBody);
@@ -79,7 +78,6 @@ public class ArticleCacheTest {
 	
 	@Test
 	public void testNestedCacheDirs() {
-		ArticleCache ac = new ArticleCache();
 		String articleName = "test_dir/test_article";
 		final String articleBody = "Test article body.";
 		ac.cacheArticle(articleName, articleBody);
@@ -96,7 +94,6 @@ public class ArticleCacheTest {
 	
 	@Test
 	public void testPathsWithSpaces() {
-		ArticleCache ac = new ArticleCache();
 		final String articleName = "test article";
 		final String articleBody = "Test article body.";
 		ac.cacheArticle(articleName, articleBody);
@@ -107,7 +104,6 @@ public class ArticleCacheTest {
 	
 	@Test
 	public void testBodyWithMultipleLines() {
-		ArticleCache ac = new ArticleCache();
 		final String eol = System.getProperty("line.separator"); 
 		final String articleName = "test_article";
 		final String articleBody = "Test article body." + eol + "This is the second line." + eol + "This is third." + eol + eol + "Wheee!";
@@ -119,7 +115,6 @@ public class ArticleCacheTest {
 	
 	@Test
 	public void testMultipleArticles() {
-		ArticleCache ac = new ArticleCache();
 		String articleName = "test article %d";
 		String articleBody = "Test article body copy %d.";
 		

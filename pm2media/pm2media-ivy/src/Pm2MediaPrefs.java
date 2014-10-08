@@ -3,9 +3,12 @@ import java.util.Properties;
 
 public class Pm2MediaPrefs {
 
+	public static final String CACHE_NAME_FORMAT = "pm2media.%s.cacheDirectory";
+	
 	public static final String PMWIKI_USE_CACHE = "pmwiki.useCache";
 	public static final String PMWIKI_DOWNLOAD_ATTACHMENTS = "pmwiki.downloadAttachments";
 	
+	public static final String MEDIAWIKI_USE_CACHE = "mediawiki.useCache";
 	public static final String MEDIAWIKI_UPLOAD_ARTICLES = "mediawiki.uploadArticles";
 	public static final String MEDIAWIKI_UPLOAD_ATTACHMENTS = "mediawiki.uploadAttachemnts";
 	

@@ -45,8 +45,12 @@ public class MediaWiki {
 
 	private final WebClient webClient = new WebClient();
 
+	private ArticleCache mediawikiCache;
+
 	public MediaWiki() {
 		webClient.addRequestHeader("Accept-Encoding", "");
+		mediawikiCache = new ArticleCache("mediaWiki");
+		mediawikiCache.cleanCache();
 	}
 
 	/**
@@ -58,6 +62,8 @@ public class MediaWiki {
 	public void postArticle(Article article) {
 		String editLink = wikiParams.getURL() + "?title=" + article.getPathInWiki("/") + "&action=edit";
 
+		saveToCache(article);
+		
 		if (! Pm2MediaPrefs.getBoolProperty(Pm2MediaPrefs.MEDIAWIKI_UPLOAD_ARTICLES)) {
 			Logger.getInstance().log("Skipping upload of " + article.getPathInWiki("/") + ".");
 			return;
@@ -80,6 +86,12 @@ public class MediaWiki {
 			e.printStackTrace();
 		}
 
+	}
+	
+	private void saveToCache(Article article) {
+		if (Pm2MediaPrefs.getBoolProperty(Pm2MediaPrefs.MEDIAWIKI_USE_CACHE)) {
+			mediawikiCache.cacheArticle(article.getPathInWiki("/"), article.getBody());
+		}
 	}
 	
 	/**

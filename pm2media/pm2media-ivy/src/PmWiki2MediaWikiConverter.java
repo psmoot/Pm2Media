@@ -37,9 +37,7 @@ public class PmWiki2MediaWikiConverter {
 	 * @return the converted String
 	 */
 	public final String pmw2mw(final String text) {
-		Logger.getInstance().log("Started replace sytnax");
 		String newText = replacePmWikiSyntax(text);
-		Logger.getInstance().log("Finished replacing syntax");
 
 		return newText;
 	}
@@ -410,8 +408,8 @@ public class PmWiki2MediaWikiConverter {
 		 */
 		public String convert(final String text) {
 			/** RegEx matching monotype font */
-//			final Pattern monotypePattern = Pattern.compile("@@(.*?){1,}@@",
-//					Pattern.DOTALL);
+			//			final Pattern monotypePattern = Pattern.compile("@@(.*?){1,}@@",
+			//					Pattern.DOTALL);
 			final Pattern monotypePattern = Pattern.compile("@@(.*?)@@", Pattern.DOTALL);
 
 			String convertedText = text;
@@ -420,35 +418,18 @@ public class PmWiki2MediaWikiConverter {
 				while (true) {
 					// replacing monotype syntax
 					Matcher matcher;
-					try {
-						matcher = monotypePattern.matcher(convertedText);
-					} catch (StackOverflowError e) {
-						Logger.getInstance().logError("Failed compiling monotype pattern.");
-						e.printStackTrace();
-						return convertedText;
-					}
+					matcher = monotypePattern.matcher(convertedText);
 
 					boolean foundOne = false;
-					try {
-						foundOne = matcher.find();
-					} catch (StackOverflowError e) {
-						Logger.getInstance().logError("Failed searching for monotype pattern.");
-						e.printStackTrace();
-					}
+					foundOne = matcher.find();
 					if (! foundOne) {
 						break;
 					}
 
 					String newText;
-					try {
-						newText = replaceFirstQuoted(matcher,
-								"<tt>" + matcher.group(1) + "</tt>");
-						convertedText = newText;
-					} catch (StackOverflowError e) {
-						Logger.getInstance().logError("Failed replacing monotype.");
-						e.printStackTrace();
-						return convertedText;
-					}
+					newText = replaceFirstQuoted(matcher,
+							"<tt>" + matcher.group(1) + "</tt>");
+					convertedText = newText;
 				}
 			} catch (StackOverflowError e) {
 				Logger.getInstance().logError("Whoops, didn't catch stack overflow exception.");

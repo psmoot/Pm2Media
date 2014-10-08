@@ -25,23 +25,14 @@ public class ArticleCache {
 		}
 	}
 	
-	public ArticleCache() {
-		cacheDirectoryName = Pm2MediaPrefs.getProperty("pm2media.cacheDirectory", "article-cache");
+	public ArticleCache(final String cacheName) {
+		cacheDirectoryName = Pm2MediaPrefs.getProperty(String.format(Pm2MediaPrefs.CACHE_NAME_FORMAT, cacheName), 
+				cacheName + "-cache");
 	}
 	
 	protected void cleanCache() {
 		File cacheDirectory = new File(cacheDirectoryName);
-		
-//		try {
-//			FileUtils.cleanDirectory(cacheDirectory);
-//		} catch (IOException e) {
-//			// Don't worry, we don't care.
-//			;
-//		}
-//		catch (IllegalArgumentException e) {
-//			// Most likely directory does not exist. Ignore this too.
-//			;
-//		}
+	
 		FileUtils.deleteQuietly(cacheDirectory);
 	}
 	
