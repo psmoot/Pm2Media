@@ -69,7 +69,8 @@ public class PmWiki2MediaWikiConverter {
 				new ReplaceMonotypeText(),
 				new ReplaceRightAlignedText(),
 				new ReplaceAttachmentLinks(),
-				new ReplaceSource()
+				new ReplaceSource(),
+				new RemoveUselessHtmlTags()
 				));
 
 		String convertedText = text;
@@ -689,6 +690,30 @@ public class PmWiki2MediaWikiConverter {
 				String newText = replaceFirstQuoted(matcher, "[" + matcher.group(1) + "]");
 				convertedText = newText;
 				matcher = mailtoLink.matcher(convertedText);
+			}
+
+			return convertedText;
+		}
+	}
+	
+	/**
+	 * Replace HTML tags inserted by Microsoft Word.
+	 * 
+	 * Examples are the <st1:...> and <o:...> tags.  They have different stuff after the 
+	 * colon so we have to match only up to there.
+	 * 
+	 * @author smootp
+	 *
+	 */
+	private class RemoveUselessHtmlTags implements SyntaxConversion {
+		public String convert(final String text) {
+			final List<String> prefixes = Arrays.asList("st1", "o");
+			String convertedText = text;
+			
+			for (String tagPrefix : prefixes) {
+				Matcher matcher = Pattern.compile("</??" + tagPrefix + ":.+?>").matcher(convertedText);
+				String newText = matcher.replaceAll("");
+				convertedText = newText;
 			}
 
 			return convertedText;

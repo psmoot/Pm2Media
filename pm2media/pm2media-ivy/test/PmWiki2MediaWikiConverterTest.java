@@ -36,11 +36,18 @@ public class PmWiki2MediaWikiConverterTest {
 	}
 
 	@Test
-	public void testConvertMarkup() {
+	public void testConvertSimpleMarkup() {
 		assertEquals(converter.convertMarkup("hi"), "hi");
 		assertEquals(converter.convertMarkup("'^super^'"), "<sup>super</sup>");
 		assertEquals(converter.convertMarkup("'_subscript_'"), "<sub>subscript</sub>");
 		assertEquals(converter.convertMarkup("[+hi+]"), "<big>hi</big>");
+	}
+	
+	@Test
+	public void testRemoveUselessHtmlTags() {
+		assertEquals(converter.convertMarkup("first <st1:personname name=\"bob\">second</st1:personname> third"), "first second third");
+		assertEquals(converter.convertMarkup("first <st1:personname name=\"bob\">second third"), "first second third");
+		assertEquals(converter.convertMarkup("first <o:p name=\"bob\">second </o:p>third"), "first second third");
 	}
 
 }
