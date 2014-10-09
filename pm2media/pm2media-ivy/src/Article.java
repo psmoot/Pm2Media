@@ -89,6 +89,6 @@ public class Article {
 	}
 
 	public final void convertBody(final PmWiki2MediaWikiConverter converter) {
-		body = converter.pmw2mw(body);
+		body = converter.convertMarkup(body);
 	}
 }

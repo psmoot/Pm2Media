@@ -14,6 +14,10 @@ import java.util.regex.Pattern;
 public class PmWiki2MediaWikiConverter {
 	private String imagePrefix;
 	
+	public String getImagePrefix() {
+		return imagePrefix;
+	}
+
 	public final PmWiki2MediaWikiConverter withImagePrefix(final String imagePrefix) {
 		this.imagePrefix = imagePrefix;
 		return this;
@@ -36,7 +40,7 @@ public class PmWiki2MediaWikiConverter {
 	 *            the text to be converted
 	 * @return the converted String
 	 */
-	public final String pmw2mw(final String text) {
+	public final String convertMarkup(final String text) {
 		String newText = replacePmWikiSyntax(text);
 
 		return newText;
@@ -68,8 +72,8 @@ public class PmWiki2MediaWikiConverter {
 				new ReplaceSource()
 				));
 
+		String convertedText = text;
 		for (SyntaxConversion s : conversions) {
-			String convertedText = text;
 			try {
 				String newText = s.convert(convertedText);
 				convertedText = newText;
@@ -85,7 +89,7 @@ public class PmWiki2MediaWikiConverter {
 			}
 		}
 
-		return text;
+		return convertedText;
 	}
 
 	private class ReplaceSimpleSyntax implements SyntaxConversion {
@@ -124,12 +128,11 @@ public class PmWiki2MediaWikiConverter {
 		public String convert(final String text)  {
 			
 			String convertedText = text;
-			for (int i = 0; i < syntaxPairs.length; i++) {
-				String newText = replaceAll(convertedText, syntaxPairs[i].getPmWSyntax(),
-						syntaxPairs[i].getMWSyntax());
+			for (SyntaxPair sp : syntaxPairs) {
+				String newText = replaceAll(convertedText, sp.getPmWSyntax(), sp.getMWSyntax());
 				convertedText = newText;
 			}
-			return text;
+			return convertedText;
 		}
 	}
 
@@ -701,37 +704,15 @@ public class PmWiki2MediaWikiConverter {
 	 *            the string to be replaced
 	 * @param replace
 	 *            the replacement
-	 * @return String with all occurances of search string replaced.
+	 * @return String with all occurrences of search string replaced.
 	 */
 	private String replaceAll(final String original, final String search, final String replace) {
-		final int sLength = original.length();
-		final int oldLength = search.length();
-		final int newLength = replace.length();
+		Pattern pattern = Pattern.compile(search, 
+				java.util.regex.Pattern.LITERAL + java.util.regex.Pattern.CASE_INSENSITIVE + java.util.regex.Pattern.UNICODE_CASE);
+		Matcher matcher = pattern.matcher(original);
+		String newText = matcher.replaceAll(replace);
 
-		if (oldLength == 0) {
-			return original;
-		}
-
-		int oldPos = 0;
-		int newPos = 0;
-
-		StringBuffer sb = null;
-
-		if (newLength <= oldLength) {
-			sb = new StringBuffer(sLength);
-		} else {
-			sb = new StringBuffer(sLength * newLength / oldLength);
-		}
-
-		while ((newPos = original.indexOf(search, oldPos)) > -1) {
-			sb.append(original.substring(oldPos, newPos));
-			sb.append(replace);
-			oldPos = newPos + oldLength;
-		}
-
-		sb.append(original.substring(oldPos));
-
-		return sb.toString();
+		return newText;
 	}
 	
 	private String replaceFirstQuoted(final Matcher matcher, final String replacement) {
