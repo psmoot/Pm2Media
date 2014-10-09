@@ -69,7 +69,7 @@ public class PmWiki {
 	 */
 	public PmWiki() {
 		Pm2MediaPrefs.getBoolProperty(Pm2MediaPrefs.PMWIKI_USE_CACHE);
-		pmwikiCache = new ArticleCache("pmWiki");
+		pmwikiCache = new ArticleCache("pmwiki");
 	}
 
 	public void initializeCredentials() {
