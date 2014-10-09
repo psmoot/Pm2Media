@@ -49,7 +49,7 @@ public class MediaWiki {
 
 	public MediaWiki() {
 		webClient.addRequestHeader("Accept-Encoding", "");
-		mediawikiCache = new ArticleCache("mediaWiki");
+		mediawikiCache = new ArticleCache("mediawiki");
 		mediawikiCache.cleanCache();
 	}
 
