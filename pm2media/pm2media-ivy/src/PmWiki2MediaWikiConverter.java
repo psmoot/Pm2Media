@@ -70,7 +70,8 @@ public class PmWiki2MediaWikiConverter {
 				new ReplaceRightAlignedText(),
 				new ReplaceAttachmentLinks(),
 				new ReplaceSource(),
-				new RemoveUselessHtmlTags()
+				new RemoveUselessHtmlTags(),
+				new ReplaceRedirects()
 				));
 
 		String convertedText = text;
@@ -273,6 +274,27 @@ public class PmWiki2MediaWikiConverter {
 			}
 
 			return convertedText;
+		}
+	}
+	
+	/**
+	 * Converts page redirects.  The entire page should consist of nothing but the redirect code.
+	 * 
+	 * <b>Conversion:</b><br />
+	 * (:redirect new/page/name:) => #REDIRECT new/page/name
+	 * 
+	 * @param text
+	 *            the text to convert
+	 * @return the converted text
+	 */
+	private class ReplaceRedirects implements SyntaxConversion {
+		public String convert(final String text) {
+			Matcher matcher = Pattern.compile("\\(:redirect\\s+(.*?):\\)", Pattern.DOTALL).matcher(text);
+
+			if (matcher.find()) {
+				return "#REDIRECT [[" + matcher.group(1) + "]]";
+			} else
+				return text;
 		}
 	}
 	

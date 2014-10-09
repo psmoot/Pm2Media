@@ -50,4 +50,8 @@ public class PmWiki2MediaWikiConverterTest {
 		assertEquals(converter.convertMarkup("first <o:p name=\"bob\">second </o:p>third"), "first second third");
 	}
 
+	@Test
+	public void testRemoveRedirects() {
+		assertEquals("#REDIRECT [[the/new/page]]", converter.convertMarkup("(:redirect the/new/page:)"));
+	}
 }
