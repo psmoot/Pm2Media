@@ -300,10 +300,18 @@ public class PmWiki2MediaWikiConverter {
 	}
 	
 	/**
-	 * Replace <a href="...">text</a> patterns with [[link|text]].  Also replace just
-	 * plain <a href="..." /> with [[link]].
+	 * Replace <a href="...">text</a> patterns with [link|text].  Also replace just
+	 * plain <a href="..." /> with [link].
+	 *
+	 * To avoid problems with deciding where the link ends, square brackets in the link text are
+	 * wrapped in <wiki>[</nowiki> tags.
 	 */
 	private class ReplaceHrefs implements SyntaxConversion {
+		private String wrapBrackets(final String text) {
+			String convertedText = replaceAll(text, "[", "<nowiki>[</nowiki>");
+			return replaceAll(convertedText, "]", "<nowiki>]</nowiki>");
+		}
+		
 		public String convert(final String text) {
 			Pattern hrefPattern = Pattern.compile("<a\\s+href=\"(.*?)\"\\s*?>(.*?)</a\\s*?>", 
 					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
@@ -311,7 +319,7 @@ public class PmWiki2MediaWikiConverter {
 			
 			String convertedText = text;
 			while (matcher.find()) {
-				convertedText = matcher.replaceFirst("[" + matcher.group(1) + "|" + matcher.group(2) + "]");
+				convertedText = matcher.replaceFirst("[" + matcher.group(1) + "|" + wrapBrackets(matcher.group(2)) + "]");
 				matcher = hrefPattern.matcher(convertedText);
 			}
 			

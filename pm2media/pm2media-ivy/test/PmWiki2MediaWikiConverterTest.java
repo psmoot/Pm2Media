@@ -67,5 +67,8 @@ public class PmWiki2MediaWikiConverterTest {
 				converter.convertMarkup("<a    href=\"http://www.example.com\"   />"));
 		assertEquals("[http://www.example.com]",
 				converter.convertMarkup("<a href=\"http://www.example.com\"/>"));
+		
+		assertEquals("[http://www.example.com|<nowiki>[</nowiki>]",
+				converter.convertMarkup("<a href=\"http://www.example.com\">[</a>"));
 	}
 }
