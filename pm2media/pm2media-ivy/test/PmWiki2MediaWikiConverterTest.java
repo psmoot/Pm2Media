@@ -57,15 +57,15 @@ public class PmWiki2MediaWikiConverterTest {
 	
 	@Test
 	public void testRemoveHrefs() {
-		assertEquals("[[http://www.example.com|Example.com]]",
+		assertEquals("[http://www.example.com|Example.com]",
 				converter.convertMarkup("<a href=\"http://www.example.com\">Example.com</a>"));
-		assertEquals("[[http://www.example.com|Example.com]]",
+		assertEquals("[http://www.example.com|Example.com]",
 				converter.convertMarkup("<a   href=\"http://www.example.com\"  >Example.com</a  >"));
-		assertEquals("[[http://www.example.com]]",
+		assertEquals("[http://www.example.com]",
 				converter.convertMarkup("<a href=\"http://www.example.com\" />"));
-		assertEquals("[[http://www.example.com]]",
+		assertEquals("[http://www.example.com]",
 				converter.convertMarkup("<a    href=\"http://www.example.com\"   />"));
-		assertEquals("[[http://www.example.com]]",
+		assertEquals("[http://www.example.com]",
 				converter.convertMarkup("<a href=\"http://www.example.com\"/>"));
 	}
 }

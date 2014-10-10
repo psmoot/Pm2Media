@@ -311,7 +311,7 @@ public class PmWiki2MediaWikiConverter {
 			
 			String convertedText = text;
 			while (matcher.find()) {
-				convertedText = matcher.replaceFirst("[[" + matcher.group(1) + "|" + matcher.group(2) + "]]");
+				convertedText = matcher.replaceFirst("[" + matcher.group(1) + "|" + matcher.group(2) + "]");
 				matcher = hrefPattern.matcher(convertedText);
 			}
 			
@@ -319,7 +319,7 @@ public class PmWiki2MediaWikiConverter {
 					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
 			matcher = hrefPattern.matcher(convertedText);
 			while (matcher.find()) {
-				convertedText = matcher.replaceFirst("[[" + matcher.group(1) + "]]");
+				convertedText = matcher.replaceFirst("[" + matcher.group(1) + "]");
 			}
 			
 			return convertedText;
