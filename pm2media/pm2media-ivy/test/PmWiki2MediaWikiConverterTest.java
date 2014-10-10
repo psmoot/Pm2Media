@@ -54,4 +54,18 @@ public class PmWiki2MediaWikiConverterTest {
 	public void testRemoveRedirects() {
 		assertEquals("#REDIRECT [[the/new/page]]", converter.convertMarkup("(:redirect the/new/page:)"));
 	}
+	
+	@Test
+	public void testRemoveHrefs() {
+		assertEquals("[[http://www.example.com|Example.com]]",
+				converter.convertMarkup("<a href=\"http://www.example.com\">Example.com</a>"));
+		assertEquals("[[http://www.example.com|Example.com]]",
+				converter.convertMarkup("<a   href=\"http://www.example.com\"  >Example.com</a  >"));
+		assertEquals("[[http://www.example.com]]",
+				converter.convertMarkup("<a href=\"http://www.example.com\" />"));
+		assertEquals("[[http://www.example.com]]",
+				converter.convertMarkup("<a    href=\"http://www.example.com\"   />"));
+		assertEquals("[[http://www.example.com]]",
+				converter.convertMarkup("<a href=\"http://www.example.com\"/>"));
+	}
 }

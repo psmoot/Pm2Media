@@ -71,7 +71,8 @@ public class PmWiki2MediaWikiConverter {
 				new ReplaceAttachmentLinks(),
 				new ReplaceSource(),
 				new RemoveUselessHtmlTags(),
-				new ReplaceRedirects()
+				new ReplaceRedirects(),
+				new ReplaceHrefs()
 				));
 
 		String convertedText = text;
@@ -295,6 +296,33 @@ public class PmWiki2MediaWikiConverter {
 				return "#REDIRECT [[" + matcher.group(1) + "]]";
 			} else
 				return text;
+		}
+	}
+	
+	/**
+	 * Replace <a href="...">text</a> patterns with [[link|text]].  Also replace just
+	 * plain <a href="..." /> with [[link]].
+	 */
+	private class ReplaceHrefs implements SyntaxConversion {
+		public String convert(final String text) {
+			Pattern hrefPattern = Pattern.compile("<a\\s+href=\"(.*?)\"\\s*?>(.*?)</a\\s*?>", 
+					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
+			Matcher matcher = hrefPattern.matcher(text);
+			
+			String convertedText = text;
+			while (matcher.find()) {
+				convertedText = matcher.replaceFirst("[[" + matcher.group(1) + "|" + matcher.group(2) + "]]");
+				matcher = hrefPattern.matcher(convertedText);
+			}
+			
+			hrefPattern = Pattern.compile("<a\\s+href=\"(.+?)\"\\s*?/>", 
+					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
+			matcher = hrefPattern.matcher(convertedText);
+			while (matcher.find()) {
+				convertedText = matcher.replaceFirst("[[" + matcher.group(1) + "]]");
+			}
+			
+			return convertedText;
 		}
 	}
 	
