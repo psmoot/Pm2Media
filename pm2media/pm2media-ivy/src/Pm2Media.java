@@ -124,7 +124,8 @@ public class Pm2Media {
 		Article article = null;
 
 		PmWiki2MediaWikiConverter converter = new PmWiki2MediaWikiConverter()
-			.withImagePrefix(mWikiImagePrefix);
+			.withImagePrefix(mWikiImagePrefix)
+			.withSourceWikiPrefix(pmWiki.getWikiParams().getURL());
 			
 		// parsing every PmWiki article
 		int i = 1;

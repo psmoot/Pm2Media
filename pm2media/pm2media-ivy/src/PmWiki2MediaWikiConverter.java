@@ -35,7 +35,7 @@ public class PmWiki2MediaWikiConverter {
 	
 	public PmWiki2MediaWikiConverter withSourceWikiPrefix(final String prefix) {
 		/*
-		 * What we want is just the "server.com/blah/blah/pmwiki.php" portion.  Trim away
+		 * What we want is just the "server.com/blah/blah/pmwiki.php/" portion.  Trim away
 		 * anything else.
 		 */
 		sourceWikiPrefix = prefix;
@@ -45,7 +45,7 @@ public class PmWiki2MediaWikiConverter {
 			sourceWikiPrefix = sourceWikiPrefix.replaceFirst("https://", "");
 		}
 		
-		sourceWikiPrefix = sourceWikiPrefix.replaceFirst("pmwiki.php/.*", "pmwiki.php/");
+		sourceWikiPrefix = sourceWikiPrefix.replaceFirst("/pmwiki.php.*", "/pmwiki.php/");
 		return this;
 	}
 	
