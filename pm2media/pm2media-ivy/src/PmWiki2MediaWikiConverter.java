@@ -24,6 +24,32 @@ public class PmWiki2MediaWikiConverter {
 	}
 
 	/**
+	 * Address of PmWiki.  External links which start with this prefix are converted to links in
+	 * the destination wiki.
+	 */
+	private String sourceWikiPrefix = "";
+	
+	public String getSourceWikiPrefix() {
+		return sourceWikiPrefix;
+	}
+	
+	public PmWiki2MediaWikiConverter withSourceWikiPrefix(final String prefix) {
+		/*
+		 * What we want is just the "server.com/blah/blah/pmwiki.php" portion.  Trim away
+		 * anything else.
+		 */
+		sourceWikiPrefix = prefix;
+		if (sourceWikiPrefix.startsWith("http://")) {
+			sourceWikiPrefix = sourceWikiPrefix.replaceFirst("http://", "");
+		} else if (sourceWikiPrefix.startsWith("https://")) {
+			sourceWikiPrefix = sourceWikiPrefix.replaceFirst("https://", "");
+		}
+		
+		sourceWikiPrefix = sourceWikiPrefix.replaceFirst("pmwiki.php/.*", "pmwiki.php/");
+		return this;
+	}
+	
+	/**
 	 * Private class constructor.
 	 */
 	public PmWiki2MediaWikiConverter() {
@@ -312,6 +338,51 @@ public class PmWiki2MediaWikiConverter {
 			return replaceAll(convertedText, "]", "<nowiki>]</nowiki>");
 		}
 		
+		/**
+		 * If a href refers to the old pmwiki address, shorten it to an internal page
+		 * reference in the mediawiki.
+		 * 
+		 * @param 	href 	Original address (http://www.pmwiki.org/xxx)
+		 * @return 	Either original address or internal address within mediawiki
+		 */
+		private String pmwikiToMediawikiHrefs(final String href) {
+			String newRef = href;
+			
+			if (href.startsWith("http://" + sourceWikiPrefix)) {
+				newRef = newRef.replaceFirst("http://" + sourceWikiPrefix, "");
+			} else if (href.startsWith("https://" + sourceWikiPrefix)) {
+				newRef = newRef.replaceFirst("https://" + sourceWikiPrefix, "");
+			}
+			
+			return newRef;
+		}
+		
+		/**
+		 * Return true if a reference is an internal reference and thus needs to use double
+		 * square brackets.
+		 * 
+		 * @param href
+		 * @return True if reference needs double brackets, false if single brackets are fine.
+		 */
+		private boolean needsSingleBrackets(final String href) {
+			return href.startsWith("http://") || href.startsWith("https://");
+		}
+
+		/**
+		 * Return either single or double bracket depending on whether reference is an internal
+		 * or external link.
+		 * @param 	href 	Reference we're trying to wrap.
+		 * @param 	bracketChar 	Either [ or ].
+		 * @return 	Either 	single or double bracketChar as appropriate.
+		 */
+		private String bracketForHref(final String href, String bracketChar) {
+			if (needsSingleBrackets(href)) {
+				return bracketChar;
+			} else {
+				return bracketChar + bracketChar;
+			}
+		}
+		
 		public String convert(final String text) {
 			Pattern hrefPattern = Pattern.compile("<a\\s+href=\"(.*?)\"\\s*?>(.*?)</a\\s*?>", 
 					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
@@ -319,7 +390,9 @@ public class PmWiki2MediaWikiConverter {
 			
 			String convertedText = text;
 			while (matcher.find()) {
-				convertedText = matcher.replaceFirst("[" + matcher.group(1) + "|" + wrapBrackets(matcher.group(2)) + "]");
+				final String href = pmwikiToMediawikiHrefs(matcher.group(1));
+
+				convertedText = matcher.replaceFirst(bracketForHref(href, "[") + href + "|" + wrapBrackets(matcher.group(2)) + bracketForHref(href, "]"));
 				matcher = hrefPattern.matcher(convertedText);
 			}
 			
@@ -327,7 +400,8 @@ public class PmWiki2MediaWikiConverter {
 					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
 			matcher = hrefPattern.matcher(convertedText);
 			while (matcher.find()) {
-				convertedText = matcher.replaceFirst("[" + matcher.group(1) + "]");
+				final String href = pmwikiToMediawikiHrefs(matcher.group(1));
+				convertedText = matcher.replaceFirst(bracketForHref(href, "[") + href + bracketForHref(href, "]"));
 			}
 			
 			return convertedText;
@@ -700,7 +774,7 @@ public class PmWiki2MediaWikiConverter {
 			matcher = internalWikiLink2.matcher(convertedText);
 
 			while (matcher.find()) {
-				String newText = replaceFirstQuoted(matcher, "[[" + matcher.group(1) + ":"
+				String newText = replaceFirstQuoted(matcher, "[[" + matcher.group(1) + "/"
 						+ matcher.group(2) + "]]");
 				convertedText = newText;
 				matcher = internalWikiLink2.matcher(convertedText);

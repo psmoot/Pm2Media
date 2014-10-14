@@ -10,6 +10,7 @@ import org.junit.Test;
 public class PmWiki2MediaWikiConverterTest {
 
 	PmWiki2MediaWikiConverter converter;
+	final String pmwikiPrefix="http://www.pmwiki.org/testwiki/pmwiki.php/";
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -21,7 +22,9 @@ public class PmWiki2MediaWikiConverterTest {
 
 	@Before
 	public void setUp() throws Exception {
-		converter = new PmWiki2MediaWikiConverter();
+		converter = new PmWiki2MediaWikiConverter()
+				.withImagePrefix("Image")
+				.withSourceWikiPrefix(pmwikiPrefix);
 	}
 
 	@After
@@ -56,6 +59,15 @@ public class PmWiki2MediaWikiConverterTest {
 	}
 	
 	@Test
+	public void testPmwikiPrefix() {
+		converter.withSourceWikiPrefix("http://www.pmwiki.com/source/prefix/pmwiki.php/Main/Page");
+		assertEquals("www.pmwiki.com/source/prefix/pmwiki.php/", converter.getSourceWikiPrefix());
+
+		converter.withSourceWikiPrefix("https://www.pmwiki.com/source/prefix/pmwiki.php/Main/Page");
+		assertEquals("www.pmwiki.com/source/prefix/pmwiki.php/", converter.getSourceWikiPrefix());
+	}
+
+	@Test
 	public void testRemoveHrefs() {
 		assertEquals("[http://www.example.com|Example.com]",
 				converter.convertMarkup("<a href=\"http://www.example.com\">Example.com</a>"));
@@ -70,5 +82,13 @@ public class PmWiki2MediaWikiConverterTest {
 		
 		assertEquals("[http://www.example.com|<nowiki>[</nowiki>]",
 				converter.convertMarkup("<a href=\"http://www.example.com\">[</a>"));
+	}
+	
+	@Test
+	public void testConvertExternalHrefsToInternal() {
+		assertEquals("[[page]]",
+				converter.convertMarkup("<a href=\"" + pmwikiPrefix + "page\" />"));
+		assertEquals("[[page|Page text]]",
+				converter.convertMarkup("<a href=\"" + pmwikiPrefix + "page\">Page text</a>"));
 	}
 }
