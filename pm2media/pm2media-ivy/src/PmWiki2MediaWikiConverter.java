@@ -324,90 +324,7 @@ public class PmWiki2MediaWikiConverter {
 				return text;
 		}
 	}
-	
-	/**
-	 * Replace <a href="...">text</a> patterns with [link|text].  Also replace just
-	 * plain <a href="..." /> with [link].
-	 *
-	 * To avoid problems with deciding where the link ends, square brackets in the link text are
-	 * wrapped in <wiki>[</nowiki> tags.
-	 */
-	private class ReplaceHrefs implements SyntaxConversion {
-		private String wrapBrackets(final String text) {
-			String convertedText = replaceAll(text, "[", "<nowiki>[</nowiki>");
-			return replaceAll(convertedText, "]", "<nowiki>]</nowiki>");
-		}
-		
-		/**
-		 * If a href refers to the old pmwiki address, shorten it to an internal page
-		 * reference in the mediawiki.
-		 * 
-		 * @param 	href 	Original address (http://www.pmwiki.org/xxx)
-		 * @return 	Either original address or internal address within mediawiki
-		 */
-		private String pmwikiToMediawikiHrefs(final String href) {
-			String newRef = href;
-			
-			if (href.startsWith("http://" + sourceWikiPrefix)) {
-				newRef = newRef.replaceFirst("http://" + sourceWikiPrefix, "");
-			} else if (href.startsWith("https://" + sourceWikiPrefix)) {
-				newRef = newRef.replaceFirst("https://" + sourceWikiPrefix, "");
-			}
-			
-			return newRef;
-		}
-		
-		/**
-		 * Return true if a reference is an internal reference and thus needs to use double
-		 * square brackets.
-		 * 
-		 * @param href
-		 * @return True if reference needs double brackets, false if single brackets are fine.
-		 */
-		private boolean needsSingleBrackets(final String href) {
-			return href.startsWith("http://") || href.startsWith("https://");
-		}
 
-		/**
-		 * Return either single or double bracket depending on whether reference is an internal
-		 * or external link.
-		 * @param 	href 	Reference we're trying to wrap.
-		 * @param 	bracketChar 	Either [ or ].
-		 * @return 	Either 	single or double bracketChar as appropriate.
-		 */
-		private String bracketForHref(final String href, String bracketChar) {
-			if (needsSingleBrackets(href)) {
-				return bracketChar;
-			} else {
-				return bracketChar + bracketChar;
-			}
-		}
-		
-		public String convert(final String text) {
-			Pattern hrefPattern = Pattern.compile("<a\\s+href=\"(.*?)\"\\s*?>(.*?)</a\\s*?>", 
-					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
-			Matcher matcher = hrefPattern.matcher(text);
-			
-			String convertedText = text;
-			while (matcher.find()) {
-				final String href = pmwikiToMediawikiHrefs(matcher.group(1));
-
-				convertedText = matcher.replaceFirst(bracketForHref(href, "[") + href + "|" + wrapBrackets(matcher.group(2)) + bracketForHref(href, "]"));
-				matcher = hrefPattern.matcher(convertedText);
-			}
-			
-			hrefPattern = Pattern.compile("<a\\s+href=\"(.+?)\"\\s*?/>", 
-					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
-			matcher = hrefPattern.matcher(convertedText);
-			while (matcher.find()) {
-				final String href = pmwikiToMediawikiHrefs(matcher.group(1));
-				convertedText = matcher.replaceFirst(bracketForHref(href, "[") + href + bracketForHref(href, "]"));
-			}
-			
-			return convertedText;
-		}
-	}
-	
 	/**
 	 * Converts all definitions of PmWiki to definitions of MediaWiki.<br /><br />
 	 * 
@@ -783,20 +700,108 @@ public class PmWiki2MediaWikiConverter {
 			return convertedText;
 		}
 	}
+
+	private abstract class ConvertLinks {
+		protected String wrapBrackets(final String text) {
+			String convertedText = replaceAll(text, "[", "<nowiki>[</nowiki>");
+			return replaceAll(convertedText, "]", "<nowiki>]</nowiki>");
+		}
+		
+		/**
+		 * If a href refers to the old pmwiki address, shorten it to an internal page
+		 * reference in the mediawiki.
+		 * 
+		 * @param 	href 	Original address (http://www.pmwiki.org/xxx)
+		 * @return 	Either original address or internal address within mediawiki
+		 */
+		protected String pmwikiToMediawikiHrefs(final String href) {
+			String newRef = href;
+			
+			if (href.startsWith("http://" + sourceWikiPrefix)) {
+				newRef = newRef.replaceFirst("http://" + sourceWikiPrefix, "");
+			} else if (href.startsWith("https://" + sourceWikiPrefix)) {
+				newRef = newRef.replaceFirst("https://" + sourceWikiPrefix, "");
+			}
+			
+			return newRef;
+		}
+		
+		/**
+		 * Return true if a reference is an internal reference and thus needs to use double
+		 * square brackets.
+		 * 
+		 * @param href
+		 * @return True if reference needs double brackets, false if single brackets are fine.
+		 */
+		protected boolean needsSingleBrackets(final String href) {
+			return href.startsWith("http://") || href.startsWith("https://");
+		}
+
+		/**
+		 * Return either single or double bracket depending on whether reference is an internal
+		 * or external link.
+		 * @param 	href 	Reference we're trying to wrap.
+		 * @param 	bracketChar 	Either [ or ].
+		 * @return 	Either 	single or double bracketChar as appropriate.
+		 */
+		protected String bracketForHref(final String href, String bracketChar) {
+			if (needsSingleBrackets(href)) {
+				return bracketChar;
+			} else {
+				return bracketChar + bracketChar;
+			}
+		}
+	}
+	
+	/**
+	 * Replace <a href="...">text</a> patterns with [link|text].  Also replace just
+	 * plain <a href="..." /> with [link].
+	 *
+	 * To avoid problems with deciding where the link ends, square brackets in the link text are
+	 * wrapped in <wiki>[</nowiki> tags.
+	 */
+	private class ReplaceHrefs extends ConvertLinks implements SyntaxConversion {
+		public String convert(final String text) {
+			Pattern hrefPattern = Pattern.compile("<a\\s+href=\"(.*?)\"\\s*?>(.*?)</a\\s*?>", 
+					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
+			Matcher matcher = hrefPattern.matcher(text);
+			
+			String convertedText = text;
+			while (matcher.find()) {
+				final String href = pmwikiToMediawikiHrefs(matcher.group(1));
+
+				convertedText = matcher.replaceFirst(bracketForHref(href, "[") + href + "|" + wrapBrackets(matcher.group(2)) + bracketForHref(href, "]"));
+				matcher = hrefPattern.matcher(convertedText);
+			}
+			
+			hrefPattern = Pattern.compile("<a\\s+href=\"(.+?)\"\\s*?/>", 
+					Pattern.CASE_INSENSITIVE + Pattern.DOTALL);
+			matcher = hrefPattern.matcher(convertedText);
+			while (matcher.find()) {
+				final String href = pmwikiToMediawikiHrefs(matcher.group(1));
+				convertedText = matcher.replaceFirst(bracketForHref(href, "[") + href + bracketForHref(href, "]"));
+			}
+			
+			return convertedText;
+		}
+	}
+	
 	
 	/**
 	 * Converts all external wikilinks of PmWiki to external wikilinks of
-	 * MediaWiki.<br /><br />
+	 * MediaWiki.
 	 * 
-	 * <b>Conversion:</b><br />
-	 * [[http://www.link.com/ | Linktext]] => [http://www.link.com/ Linktext]<br />
+	 * Conversion:
+	 * [[http://www.link.com/ | Linktext]] => [http://www.link.com/ Linktext]
 	 * [[mailto:address@domain.com]] => [mailto:address@domain.com]
+	 * 
+	 * Special case: if link is to pmwiki itself, convert to internal link to mediawiki.
 	 * 
 	 * @param text
 	 *            the text to convert
 	 * @return the converted text
 	 */
-	private class ReplaceExternalWikiLinks implements SyntaxConversion {
+	private class ReplaceExternalWikiLinks extends ConvertLinks implements SyntaxConversion {
 		public String convert(final String text) {
 			String convertedText = text;
 			
@@ -807,8 +812,9 @@ public class PmWiki2MediaWikiConverter {
 			Matcher matcher = externalWikiLink.matcher(convertedText);
 
 			while (matcher.find()) {
-				String newText = replaceFirstQuoted(matcher, "[" + matcher.group(1) + " "
-						+ matcher.group(3) + "]");
+				final String href = pmwikiToMediawikiHrefs(matcher.group(1));
+				String newText = replaceFirstQuoted(matcher, bracketForHref(href, "[") + href + "|"
+						+ matcher.group(3) + bracketForHref(href, "]"));
 				convertedText = newText;
 				matcher = externalWikiLink.matcher(convertedText);
 			}

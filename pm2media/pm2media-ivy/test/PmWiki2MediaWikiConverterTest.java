@@ -90,5 +90,10 @@ public class PmWiki2MediaWikiConverterTest {
 				converter.convertMarkup("<a href=\"" + pmwikiPrefix + "page\" />"));
 		assertEquals("[[page|Page text]]",
 				converter.convertMarkup("<a href=\"" + pmwikiPrefix + "page\">Page text</a>"));
+		
+		assertEquals("[[page|Page]]",
+				converter.convertMarkup("[[" + pmwikiPrefix + "page | Page]]"));
+		assertEquals("[[page/other/page|Page]]",
+				converter.convertMarkup("[[" + pmwikiPrefix + "page/other/page | Page]]"));
 	}
 }
